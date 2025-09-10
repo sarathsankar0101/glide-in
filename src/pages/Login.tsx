@@ -55,7 +55,7 @@ const Login = () => {
           <div className="mx-auto w-12 h-12 bg-primary rounded-lg flex items-center justify-center mb-4">
             <Shield className="h-6 w-6 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">Risk Assessment Platform</h1>
+          <h1 className="text-2xl font-bold text-foreground">Scoring & Ranking of Defaulters</h1>
           <p className="text-muted-foreground mt-2">Sign in to access your dashboard</p>
         </div>
 
