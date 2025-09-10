@@ -35,8 +35,6 @@ const RiskConfiguration = () => {
       { name: 'Outstanding Balance', dataType: 'Number' },
       { name: 'Days Past Due (DPD)', dataType: 'Number' },
       { name: 'Repayment History Score', dataType: 'Number' },
-      { name: 'Credit Score (Experian/Equifax)', dataType: 'Number' },
-      { name: 'Credit Utilisation Ratio', dataType: 'Percentage' },
       { name: 'Previous Defaults (count)', dataType: 'Number' },
       { name: 'Cost-to-Collect Estimate', dataType: 'Number' }
     ],
@@ -44,39 +42,34 @@ const RiskConfiguration = () => {
       { name: 'Name Match %', dataType: 'Percentage' },
       { name: 'Address Match %', dataType: 'Percentage' },
       { name: 'DOB Match', dataType: 'Boolean' },
-      { name: 'National Insurance Number Match', dataType: 'Boolean' },
-      { name: 'Identity Match Score (Weighted)', dataType: 'Number' }
+      { name: 'National Insurance Number Match', dataType: 'Boolean' }
     ],
     property: [
       { name: 'Years at Current Address', dataType: 'Number' },
       { name: 'Property Owned (Yes/No)', dataType: 'Boolean' },
       { name: 'Property Value', dataType: 'Number' },
-      { name: 'Home Ownership Status', dataType: 'Text' },
-      { name: 'Vehicle Owned (Yes/No)', dataType: 'Boolean' },
-      { name: 'Stability Score', dataType: 'Number' }
+      { name: 'Vehicle Owned (Yes/No)', dataType: 'Boolean' }
     ],
     contactability: [
       { name: 'Contact Numbers Available (count)', dataType: 'Number' },
       { name: 'Validated Phone Number (Yes/No)', dataType: 'Boolean' },
-      { name: 'Mobile Number Verified', dataType: 'Boolean' },
       { name: 'Number of Contactable Channels', dataType: 'Number' },
       { name: 'Agent Recovery Success Rate', dataType: 'Percentage' }
     ],
     risk: [
       { name: 'Criminal Record Flag (Yes/No)', dataType: 'Boolean' },
-      { name: 'History of Defaults/CCJs', dataType: 'Boolean' },
-      { name: 'Recent Missed Payments', dataType: 'Number' },
-      { name: 'Same Name Cases Flag', dataType: 'Boolean' },
-      { name: 'Loan Application Address Risk', dataType: 'Text' }
+      { name: 'Recent Missed Payments', dataType: 'Number' }
     ]
   };
 
-  const getAvailableFields = (categoryId: string) => {
+  // Show all fields, but disable already used ones except the current selection
+  const getAvailableFields = (categoryId: string, currentField?: string) => {
     const category = categories.find(cat => cat.id === categoryId);
     const usedFields = category?.conditions.map(c => c.field) || [];
-    return fieldOptions[categoryId as keyof typeof fieldOptions]?.filter(
-      field => !usedFields.includes(field.name)
-    ) || [];
+    return fieldOptions[categoryId as keyof typeof fieldOptions]?.map(field => ({
+      ...field,
+      disabled: usedFields.includes(field.name) && field.name !== currentField
+    })) || [];
   };
 
   const getOperatorsForDataType = (dataType: string) => {
@@ -332,8 +325,8 @@ const RiskConfiguration = () => {
                       <SelectValue placeholder="Select field" />
                     </SelectTrigger>
                     <SelectContent>
-                      {getAvailableFields(activeTab).map((field) => (
-                        <SelectItem key={field.name} value={field.name}>
+                      {getAvailableFields(activeTab, condition.field).map((field) => (
+                        <SelectItem key={field.name} value={field.name} disabled={field.disabled}>
                           {field.name}
                         </SelectItem>
                       ))}
