@@ -35,8 +35,6 @@ const RiskConfiguration = () => {
       { name: 'Outstanding Balance', dataType: 'Number' },
       { name: 'Days Past Due (DPD)', dataType: 'Number' },
       { name: 'Repayment History Score', dataType: 'Number' },
-      { name: 'Credit Score (Experian/Equifax)', dataType: 'Number' },
-      { name: 'Credit Utilisation Ratio', dataType: 'Percentage' },
       { name: 'Previous Defaults (count)', dataType: 'Number' },
       { name: 'Cost-to-Collect Estimate', dataType: 'Number' }
     ],
@@ -44,31 +42,102 @@ const RiskConfiguration = () => {
       { name: 'Name Match %', dataType: 'Percentage' },
       { name: 'Address Match %', dataType: 'Percentage' },
       { name: 'DOB Match', dataType: 'Boolean' },
-      { name: 'National Insurance Number Match', dataType: 'Boolean' },
-      { name: 'Identity Match Score (Weighted)', dataType: 'Number' }
+      { name: 'National Insurance Number Match', dataType: 'Boolean' }
     ],
     property: [
       { name: 'Years at Current Address', dataType: 'Number' },
       { name: 'Property Owned (Yes/No)', dataType: 'Boolean' },
       { name: 'Property Value', dataType: 'Number' },
-      { name: 'Home Ownership Status', dataType: 'Text' },
-      { name: 'Vehicle Owned (Yes/No)', dataType: 'Boolean' },
-      { name: 'Stability Score', dataType: 'Number' }
+      { name: 'Vehicle Owned (Yes/No)', dataType: 'Boolean' }
     ],
     contactability: [
       { name: 'Contact Numbers Available (count)', dataType: 'Number' },
       { name: 'Validated Phone Number (Yes/No)', dataType: 'Boolean' },
-      { name: 'Mobile Number Verified', dataType: 'Boolean' },
       { name: 'Number of Contactable Channels', dataType: 'Number' },
       { name: 'Agent Recovery Success Rate', dataType: 'Percentage' }
     ],
     risk: [
       { name: 'Criminal Record Flag (Yes/No)', dataType: 'Boolean' },
-      { name: 'History of Defaults/CCJs', dataType: 'Boolean' },
-      { name: 'Recent Missed Payments', dataType: 'Number' },
-      { name: 'Same Name Cases Flag', dataType: 'Boolean' },
-      { name: 'Loan Application Address Risk', dataType: 'Text' }
+      { name: 'Recent Missed Payments', dataType: 'Number' }
     ]
+  };
+
+  const getAvailableFields = (categoryId: string) => {
+    const category = categories.find(cat => cat.id === categoryId);
+    const usedFields = category?.conditions.map(c => c.field) || [];
+    return fieldOptions[categoryId as keyof typeof fieldOptions]?.filter(
+      field => !usedFields.includes(field.name)
+    ) || [];
+  };
+
+  const getOperatorsForDataType = (dataType: string) => {
+    switch (dataType) {
+      case 'Boolean':
+        return [{ value: '=', label: '=' }];
+      case 'Text':
+        return [
+          { value: '=', label: '=' },
+          { value: '!=', label: '!=' }
+        ];
+      case 'Number':
+      case 'Percentage':
+        return [
+          { value: '>', label: '>' },
+          { value: '<', label: '<' },
+          { value: '=', label: '=' },
+          { value: '>=', label: '≥' },
+          { value: '<=', label: '≤' }
+        ];
+      default:
+        return [
+          { value: '>', label: '>' },
+          { value: '<', label: '<' },
+          { value: '=', label: '=' }
+        ];
+    }
+  };
+
+  const getValueInput = (condition: RiskCondition, onUpdate: (value: string) => void) => {
+    const { dataType, value } = condition;
+    
+    if (dataType === 'Boolean') {
+      return (
+        <Select value={value} onValueChange={onUpdate}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="true">Yes</SelectItem>
+            <SelectItem value="false">No</SelectItem>
+          </SelectContent>
+        </Select>
+      );
+    }
+    
+    if (dataType === 'Percentage') {
+      return (
+        <div className="relative">
+          <Input
+            type="number"
+            min="0"
+            max="100"
+            value={value}
+            onChange={(e) => onUpdate(e.target.value)}
+            placeholder="0-100"
+          />
+          <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground">%</span>
+        </div>
+      );
+    }
+    
+    return (
+      <Input
+        type={dataType === 'Number' ? 'number' : 'text'}
+        value={value}
+        onChange={(e) => onUpdate(e.target.value)}
+        placeholder={dataType === 'Number' ? '0' : 'Enter value'}
+      />
+    );
   };
   
   const [categories, setCategories] = useState<RiskCategory[]>([
@@ -237,9 +306,9 @@ const RiskConfiguration = () => {
                       <SelectValue placeholder="Select field" />
                     </SelectTrigger>
                     <SelectContent>
-                      {fieldOptions[activeTab as keyof typeof fieldOptions]?.map((field) => (
+                      {getAvailableFields(activeTab).map((field) => (
                         <SelectItem key={field.name} value={field.name}>
-                          {field.name} ({field.dataType})
+                          {field.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
