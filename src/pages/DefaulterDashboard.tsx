@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,17 @@ const DefaulterDashboard = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [riskFilter, setRiskFilter] = useState('All Risk Levels');
+  const [configuredCategories, setConfiguredCategories] = useState(0);
+
+  // Load saved risk configuration
+  useEffect(() => {
+    const savedCategories = localStorage.getItem('riskCategories');
+    if (savedCategories) {
+      const categories = JSON.parse(savedCategories);
+      const configuredCount = categories.filter((cat: any) => cat.conditions.length > 0).length;
+      setConfiguredCategories(configuredCount);
+    }
+  }, []);
   
   const [defaulters] = useState<Defaulter[]>([
     { id: '1', name: 'John Anderson', loanAmount: 45000, daysPastDue: 90, paymentScore: 25, riskLevel: 'High', collectionCost: 3500 },
@@ -100,6 +111,11 @@ const DefaulterDashboard = () => {
           <CardContent>
             <div className="text-2xl font-bold">{totalDefaulters}</div>
             <p className="text-xs text-muted-foreground">Active accounts in default</p>
+            <div className="mt-2">
+              <Badge variant={configuredCategories > 0 ? "default" : "secondary"}>
+                {configuredCategories} Categories Configured
+              </Badge>
+            </div>
           </CardContent>
         </Card>
 

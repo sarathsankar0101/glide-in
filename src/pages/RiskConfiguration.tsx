@@ -14,6 +14,7 @@ interface RiskCondition {
   operator: string;
   value: string;
   weight: number;
+  dataType: string;
 }
 
 interface RiskCategory {
@@ -28,13 +29,55 @@ const RiskConfiguration = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('financial');
   
+  const fieldOptions = {
+    financial: [
+      { name: 'Loan Amount', dataType: 'Number' },
+      { name: 'Outstanding Balance', dataType: 'Number' },
+      { name: 'Days Past Due (DPD)', dataType: 'Number' },
+      { name: 'Repayment History Score', dataType: 'Number' },
+      { name: 'Credit Score (Experian/Equifax)', dataType: 'Number' },
+      { name: 'Credit Utilisation Ratio', dataType: 'Percentage' },
+      { name: 'Previous Defaults (count)', dataType: 'Number' },
+      { name: 'Cost-to-Collect Estimate', dataType: 'Number' }
+    ],
+    identity: [
+      { name: 'Name Match %', dataType: 'Percentage' },
+      { name: 'Address Match %', dataType: 'Percentage' },
+      { name: 'DOB Match', dataType: 'Boolean' },
+      { name: 'National Insurance Number Match', dataType: 'Boolean' },
+      { name: 'Identity Match Score (Weighted)', dataType: 'Number' }
+    ],
+    property: [
+      { name: 'Years at Current Address', dataType: 'Number' },
+      { name: 'Property Owned (Yes/No)', dataType: 'Boolean' },
+      { name: 'Property Value', dataType: 'Number' },
+      { name: 'Home Ownership Status', dataType: 'Text' },
+      { name: 'Vehicle Owned (Yes/No)', dataType: 'Boolean' },
+      { name: 'Stability Score', dataType: 'Number' }
+    ],
+    contactability: [
+      { name: 'Contact Numbers Available (count)', dataType: 'Number' },
+      { name: 'Validated Phone Number (Yes/No)', dataType: 'Boolean' },
+      { name: 'Mobile Number Verified', dataType: 'Boolean' },
+      { name: 'Number of Contactable Channels', dataType: 'Number' },
+      { name: 'Agent Recovery Success Rate', dataType: 'Percentage' }
+    ],
+    risk: [
+      { name: 'Criminal Record Flag (Yes/No)', dataType: 'Boolean' },
+      { name: 'History of Defaults/CCJs', dataType: 'Boolean' },
+      { name: 'Recent Missed Payments', dataType: 'Number' },
+      { name: 'Same Name Cases Flag', dataType: 'Boolean' },
+      { name: 'Loan Application Address Risk', dataType: 'Text' }
+    ]
+  };
+  
   const [categories, setCategories] = useState<RiskCategory[]>([
     {
       id: 'financial',
       name: 'Financial & Credit',
       conditions: [
-        { id: '1', field: 'Loan Amount', operator: '>', value: '5000', weight: 40 },
-        { id: '2', field: 'Outstanding Balance', operator: '=', value: '1500', weight: 15 }
+        { id: '1', field: 'Loan Amount', operator: '>', value: '5000', weight: 40, dataType: 'Number' },
+        { id: '2', field: 'Outstanding Balance', operator: '=', value: '1500', weight: 15, dataType: 'Number' }
       ],
       totalWeight: 55,
       status: 'incomplete'
@@ -43,22 +86,29 @@ const RiskConfiguration = () => {
       id: 'identity',
       name: 'Identity & Verification',
       conditions: [],
-      totalWeight: 100,
-      status: 'complete'
+      totalWeight: 0,
+      status: 'incomplete'
     },
     {
       id: 'property',
       name: 'Property & Stability',
       conditions: [],
-      totalWeight: 100,
-      status: 'complete'
+      totalWeight: 0,
+      status: 'incomplete'
     },
     {
       id: 'contactability',
       name: 'Contactability & Behaviour',
       conditions: [],
-      totalWeight: 100,
-      status: 'complete'
+      totalWeight: 0,
+      status: 'incomplete'
+    },
+    {
+      id: 'risk',
+      name: 'Risk Factors',
+      conditions: [],
+      totalWeight: 0,
+      status: 'incomplete'
     }
   ]);
 
@@ -72,7 +122,8 @@ const RiskConfiguration = () => {
       field: '',
       operator: '>',
       value: '',
-      weight: 0
+      weight: 0,
+      dataType: 'Number'
     };
 
     setCategories(prev => prev.map(cat => 
@@ -113,9 +164,12 @@ const RiskConfiguration = () => {
   };
 
   const saveRules = () => {
+    // Store the categories in localStorage to persist across sessions
+    localStorage.setItem('riskCategories', JSON.stringify(categories));
+    
     toast({
       title: "Rules Saved",
-      description: "Risk assessment configuration has been saved successfully.",
+      description: "Risk assessment configuration has been saved successfully. Dashboard will reflect these changes.",
     });
   };
 
@@ -166,14 +220,30 @@ const RiskConfiguration = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             {activeCategory.conditions.map((condition) => (
-              <div key={condition.id} className="flex items-center gap-4 p-4 border rounded-lg">
+              <div key={condition.id} className="flex items-end gap-4 p-4 border rounded-lg">
                 <div className="flex-1">
                   <Label>Field</Label>
-                  <Input
+                  <Select
                     value={condition.field}
-                    onChange={(e) => updateCondition(condition.id, 'field', e.target.value)}
-                    placeholder="e.g., Loan Amount"
-                  />
+                    onValueChange={(value) => {
+                      const selectedField = fieldOptions[activeTab as keyof typeof fieldOptions]?.find(f => f.name === value);
+                      updateCondition(condition.id, 'field', value);
+                      if (selectedField) {
+                        updateCondition(condition.id, 'dataType', selectedField.dataType);
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select field" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {fieldOptions[activeTab as keyof typeof fieldOptions]?.map((field) => (
+                        <SelectItem key={field.name} value={field.name}>
+                          {field.name} ({field.dataType})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="w-24">
                   <Label>Operator</Label>
@@ -214,7 +284,7 @@ const RiskConfiguration = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => removeCondition(condition.id)}
-                  className="text-destructive hover:text-destructive"
+                  className="text-destructive hover:text-destructive h-10"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
