@@ -62,14 +62,12 @@ const RiskConfiguration = () => {
     ]
   };
 
-  // Show all fields, but disable already used ones except the current selection
-  const getAvailableFields = (categoryId: string, currentField?: string) => {
+  const getAvailableFields = (categoryId: string) => {
     const category = categories.find(cat => cat.id === categoryId);
     const usedFields = category?.conditions.map(c => c.field) || [];
-    return fieldOptions[categoryId as keyof typeof fieldOptions]?.map(field => ({
-      ...field,
-      disabled: usedFields.includes(field.name) && field.name !== currentField
-    })) || [];
+    return fieldOptions[categoryId as keyof typeof fieldOptions]?.filter(
+      field => !usedFields.includes(field.name)
+    ) || [];
   };
 
   const getOperatorsForDataType = (dataType: string) => {
@@ -235,26 +233,12 @@ const RiskConfiguration = () => {
   };
 
   const saveRules = () => {
-    // Check if any category has conditions but doesn't total 100%
-    const incompleteCategories = categories.filter(cat => 
-      cat.conditions.length > 0 && cat.totalWeight !== 100
-    );
-    
-    if (incompleteCategories.length > 0) {
-      toast({
-        title: "Incomplete Configuration",
-        description: `Some categories don't total 100%. Please adjust weights in: ${incompleteCategories.map(c => c.name).join(', ')}`,
-        variant: "destructive"
-      });
-      return;
-    }
-    
     // Store the categories in localStorage to persist across sessions
     localStorage.setItem('riskCategories', JSON.stringify(categories));
     
     toast({
-      title: "Configuration Saved",
-      description: "Scoring configuration has been saved successfully. Dashboard will reflect these changes.",
+      title: "Rules Saved",
+      description: "Risk assessment configuration has been saved successfully. Dashboard will reflect these changes.",
     });
   };
 
@@ -268,7 +252,7 @@ const RiskConfiguration = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Scoring Configuration</h1>
+        <h1 className="text-2xl font-bold text-foreground">Risk Assessment Configuration</h1>
         <p className="text-muted-foreground">Configure scoring rules and conditions for risk assessment</p>
       </div>
 
@@ -315,9 +299,6 @@ const RiskConfiguration = () => {
                       updateCondition(condition.id, 'field', value);
                       if (selectedField) {
                         updateCondition(condition.id, 'dataType', selectedField.dataType);
-                        // Reset operator and value when field changes
-                        updateCondition(condition.id, 'operator', getOperatorsForDataType(selectedField.dataType)[0]?.value || '=');
-                        updateCondition(condition.id, 'value', '');
                       }
                     }}
                   >
@@ -325,8 +306,8 @@ const RiskConfiguration = () => {
                       <SelectValue placeholder="Select field" />
                     </SelectTrigger>
                     <SelectContent>
-                      {getAvailableFields(activeTab, condition.field).map((field) => (
-                        <SelectItem key={field.name} value={field.name} disabled={field.disabled}>
+                      {getAvailableFields(activeTab).map((field) => (
+                        <SelectItem key={field.name} value={field.name}>
                           {field.name}
                         </SelectItem>
                       ))}
@@ -343,42 +324,39 @@ const RiskConfiguration = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {getOperatorsForDataType(condition.dataType).map((op) => (
-                        <SelectItem key={op.value} value={op.value}>
-                          {op.label}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value=">">{">"}</SelectItem>
+                      <SelectItem value="<">{"<"}</SelectItem>
+                      <SelectItem value="=">=</SelectItem>
+                      <SelectItem value=">=">{"≥"}</SelectItem>
+                      <SelectItem value="<=">{"≤"}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="w-32">
                   <Label>Value</Label>
-                  {getValueInput(condition, (value) => updateCondition(condition.id, 'value', value))}
+                  <Input
+                    value={condition.value}
+                    onChange={(e) => updateCondition(condition.id, 'value', e.target.value)}
+                    placeholder="5000"
+                  />
                 </div>
                 <div className="w-20">
                   <Label>Weight %</Label>
                   <Input
                     type="number"
-                    min="0"
-                    max="100"
                     value={condition.weight}
-                    onChange={(e) => {
-                      const value = Math.min(100, Math.max(0, Number(e.target.value)));
-                      updateCondition(condition.id, 'weight', value);
-                    }}
-                    placeholder="0-100"
+                    onChange={(e) => updateCondition(condition.id, 'weight', Number(e.target.value))}
+                    placeholder="40"
                   />
                 </div>
-                <div className="flex items-end">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeCondition(condition.id)}
-                    className="text-destructive hover:text-destructive h-10 w-10 p-0"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeCondition(condition.id)}
+                  className="text-destructive hover:text-destructive h-10"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
             ))}
 
