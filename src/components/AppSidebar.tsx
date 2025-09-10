@@ -14,14 +14,14 @@ import { Settings, BarChart3, Shield } from 'lucide-react';
 
 const menuItems = [
   {
-    title: 'Risk Configuration',
-    url: '/dashboard/config',
-    icon: Settings,
-  },
-  {
-    title: 'Defaulter Dashboard',
+    title: 'Dashboard',
     url: '/dashboard/scoring',
     icon: BarChart3,
+  },
+  {
+    title: 'Configuration',
+    url: '/dashboard/config',
+    icon: Settings,
   },
 ];
 
